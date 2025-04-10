@@ -1,4 +1,5 @@
 link al file colab con i comandi e con le celle per fine-tuning e valutazione di segformer: https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing
+
 TRAINING
 il training viene effettuato sul dataset contenuto in train_roweeder_effective
 le configurazioni, oltre che da linea di comando sono scritte nel file UKAN/Seg_UKAN/config.yml.
