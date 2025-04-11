@@ -1,4 +1,4 @@
-e# UKAN
+# UKAN
 per compatibilità di path inserire Seg_UKAN in una cartella UKAN.
 ## TRAINING
 ### Dataset
