@@ -38,11 +38,6 @@ Per compatibilità di path è importante dire che gli script di valutazione vann
 -  il file config.yml e model.pth sono cercati nella directory il cui nome è composto dai parametri di valutazione da linea di comando [--output_dir ('outputs' di default)/--name];
 -  rinominare i file model-64.pth o model-32.pth, come "model.pth", nel caso si voglia testare uno di questi modelli
 ### Script di valutazione
-Sono presenti tre script di valutazione: 
-- 
-### Notebook
-Il comando per l'addestramento è presente nella senzione "UKAN/Roweeder Dataset/Trainig" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
-In realtà l'addestramento è stato fatto su kaggle, per questioni di disponibilità di tempo-GPU, e le differenze dei parametri da linea di comando rispetto a colab sono:
-- le epoche: 400
-- input_list: siaono provate le tre configurazioni [128, 160, 256], [64, 80, 128], [32, 40, 64]
-- data_dir: mettere il path di train_roweeder_effective
+- [Seg_UKAN/val-multiclass.py](): calcola la F1-score per ognuna delle classi, mette nella cartella [--output_dir ('outputs' di default)/--name/output_vals] le maschere predette dal modello per ogni classe;
+- [Seg_UKAN/val-complexity.py](): calcola il numero di parametri e GMACs
+- [Seg_UKAN/val-inference_time2.py](): calcola il tempo di inferenza usando la classe Event di torch se si ha a disposizione la GPU, la libreria time (più imprecisa) altrimenti
