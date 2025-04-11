@@ -1,3 +1,5 @@
+Sia prima di lanciare Segfomer che UKAN nel notebook [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing) inserire le prime celle di installazione
+
 # UKAN
 per compatibilità di path inserire Seg_UKAN in una cartella UKAN.
 ## TRAINING
@@ -44,3 +46,5 @@ Sono presenti tre script di valutazione:
 - [Seg_UKAN/val-inference_time2.py](): calcola il tempo di inferenza usando la classe Event di torch se si ha a disposizione la GPU, la libreria time (più imprecisa) altrimenti
 ### Notebook
 I comandi per le valutazioni sono presenti nella sezione "UKAN/Roweeder Dataset/Evaluation" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
+
+# Segformer MiT-b0
