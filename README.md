@@ -7,6 +7,7 @@ Altri cambiamenti sono strettamente relativi al funzionamento esecutivo del mode
 La documentazione di progetto, la sua presentazione, e le tabelle dei dati raccolti sono presenti nella cartella [documentazione](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/documentazione).
 Questo è invece il notebook colab dove ci sono i comandi per lanciare gli script della repository: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing)
 
+L'inference time presente nella documentazione è imprecis apoichè calcolata con la libreria "time", per vedere l'inference time effettivo vedere la tabella dei risultati
 # RISULTATI DEL PROGETTO
 UKAN-64 risulta essere più accurata di Segformer, seppur con meno parametri. Tuttavia il suo inference-time pare essere di 73 ms, e quello di Segformer di 10 millesimi inferiore, su un batch di 4 immagini (size(test_roweeder_complete) mod batch size = 204 mod 8 = 4).<br>
 Il modello UKAN-32 è soggetto a pesante underfitting, poichè predice tutti i pixel come la classe sovrarrapresentata del background, ma pochissimi parametri e un inference time pari a 39 ms.
@@ -31,8 +32,9 @@ Questi file vengono creati in una directory il cui nome è composto dai parametr
 Il comando per l'addestramento è presente nella sezione "UKAN/Roweeder Dataset/Trainig" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
 In realtà l'addestramento è stato fatto su kaggle, per questioni di disponibilità di tempo-GPU, e le differenze dei parametri da linea di comando rispetto a colab sono:
 - le epoche: 400
-- input_list: siaono provate le tre configurazioni [128, 160, 256], [64, 80, 128], [32, 40, 64]
+- input_list: si sono provate le tre configurazioni [128, 160, 256], [64, 80, 128], [32, 40, 64]
 - data_dir: mettere il path di train_roweeder_effective
+- output_dir: in colab è usat quella di default
 ### File ottenuti
 in [trained_models/UKAN](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/trained_models/UKAN) sono contenuti i:
 - model.pth ottenuti per le tre configurazioni
@@ -73,7 +75,8 @@ Questi file vengono creati in una directory il cui nome è composto dai parametr
 ### Notebook
 la cella per l'addestramento è presente nella sezione "Segformer/Fine Tunining" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
 In realtà l'addestramento è stato fatto su kaggle, per questioni di disponibilità di tempo-GPU, e la differenza dei parametri di addestramento rispetto a colab è:
-- data_dir: mettere il path di train_roweeder_effective
+- DATA_DIR: mettere il path di train_roweeder_effective
+- OUTPUT_DIR: mettere la cartella dove si vuole salvare EXP_NAME/model.pth
 ### File ottenuti
 in [trained_models/Segformer](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/trained_models/segformer) è contenuto il:
 - model.pth ottenuto dopo il fine-tuning
