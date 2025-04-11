@@ -7,6 +7,13 @@ Altri cambiamenti sono strettamente relativi al funzionamento esecutivo del mode
 La documentazione di progetto e la sua presentazione sono presenti nella cartella [documentazione](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/documentazione).
 Questo è invece il notebook colab dove ci sono i comandi per lanciare gli script della repository: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing)
 
+# RISULTATI DEL PROGETTO
+UKAN-64 risulta essere più accurata di Segformer, seppur con meno parametri. Tuttavia il suo inference-time pare essere di 24 ms, e quello di Segformer di pochi millesimi inferiore.
+Il modello UKAN-32 è soggetto a pesante underfitting, poichè predice tutti i pixel come la classe sovrarrapresentata del background, ma pochissimi parametri e un inference time pari a quello di Segformer.
+
+Ci sono, comunque, delle perplessità circa l'inference time: quello riportato nella documentazione era stato misurato con la libreria "time" che da misurazioni abbastanza imprecise ma eseguibili anche in mancanza di GPU.
+Con l'utilizzo degli Event di Torch, comunque usabili solo se si ha a dispozione anche la GPU, invece, le performance di Segfomer, oscillano tra i 20 e in 23 ms, mentre il modello UKAN-32, pur avendo molti meno parametri di UKAN-64, ci mette solo pochi millesimi in meno per fare inferenza.
+
 Sia prima di lanciare Segfomer che UKAN nel notebook [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing) eseguire le prime celle di installazione
 # UKAN
 per compatibilità di path inserire Seg_UKAN in una cartella UKAN.
