@@ -1,5 +1,6 @@
 # DESCRIZIONE DEL PROGETTO
 Si è testato il modello UKAN messo a disposione al seguente link [UKAN for medical purpose](https://github.com/CUHK-AIM-Group/U-KAN.git), e confrontato con la versione più leggera di Segformer messa a disposizione dalla libreria transformes di Hugging Face.<br>
+
 Tra i principali cambiamenti operati sulla repo originale di UKAN c'è la sua trasformazione da modello mutlilabel a classi esclusive: in particolare il cambiamento della loss in CrossEntroyLoss.<br>
 Altri cambiamenti sono strettamente relativi al funzionamento esecutivo del modello, o alla stampa delle immagini finali della segmentazione, o all'aggiunta di metriche e script per la valutazione.
 
