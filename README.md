@@ -1,4 +1,4 @@
-Sia prima di lanciare Segfomer che UKAN nel notebook [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing) inserire le prime celle di installazione
+Sia prima di lanciare Segfomer che UKAN nel notebook [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing) eseguire le prime celle di installazione
 
 # UKAN
 per compatibilità di path inserire Seg_UKAN in una cartella UKAN.
