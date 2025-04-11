@@ -1,4 +1,4 @@
-# UKAN
+e# UKAN
 per compatibilità di path inserire Seg_UKAN in una cartella UKAN.
 ## TRAINING
 ### Dataset
@@ -14,11 +14,15 @@ Gli iperparametri per la complessità del modello sono indicati tramite il param
 Vengono forniti i pesi del modello in un file model.pth, e le configurazioni di trainig in un file config.yml.<br>
 Questi file vengono creati in una directory il cui nome è composto dai parametri di training [--output_dir ('outputs' di default)/--name];
 ### Notebook
-Il comando per l'addestramento è presenti nella senzione "UKAN/Roweeder Dataset/Trainig" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
+Il comando per l'addestramento è presente nella senzione "UKAN/Roweeder Dataset/Trainig" del seguente fle colab: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing).<br>
 In realtà l'addestramento è stato fatto su kaggle, per questioni di disponibilità di tempo-GPU, e le differenze dei parametri da linea di comando rispetto a colab sono:
 - le epoche: 400
 - input_list: siaono provate le tre configurazioni [128, 160, 256], [64, 80, 128], [32, 40, 64]
 - data_dir: mettere il path di train_roweeder_effective
+### File ottenuti
+in [trained_models]() sono contenuti i:
+- model.pth ottenuti per le tre configurazioni
+- config.yml ottenuto per [64, 80, 128]
 ## TESTING
 
 il testing si effettua su test_roweeder_complete.
