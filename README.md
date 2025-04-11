@@ -4,7 +4,7 @@ Si è testato il modello UKAN messo a disposione al seguente link [UKAN for medi
 Tra i principali cambiamenti operati sulla repo originale di UKAN c'è la sua trasformazione da modello mutlilabel a classi esclusive: in particolare il cambiamento della loss in CrossEntroyLoss.<br>
 Altri cambiamenti sono strettamente relativi al funzionamento esecutivo del modello, o alla stampa delle immagini finali della segmentazione, all'aggiunta di metriche e script per la valutazione, piuttosto che uno script per un training più celere.
 
-La documentazione di progetto e la sua presentazione sono presenti nella cartella [documentazione](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/documentazione).
+La documentazione di progetto, la sua presentazione, e le tabelle dei dati raccolti sono presenti nella cartella [documentazione](https://github.com/ElenaTavoletti/UKAN_weeder/tree/main/documentazione).
 Questo è invece il notebook colab dove ci sono i comandi per lanciare gli script della repository: [DL-Project](https://colab.research.google.com/drive/1_q9pZcAzU3vpXVue3c7ehwbQIbVJ2MqW?usp=sharing)
 
 # RISULTATI DEL PROGETTO
