@@ -41,6 +41,7 @@ class KANLayer(nn.Module):
         grid_range=[-1, 1]
 
         if not no_kan:
+            print("Using KAN")
             self.fc1 = KANLinear(
                         in_features,
                         hidden_features,
@@ -92,6 +93,7 @@ class KANLayer(nn.Module):
             #         )   
 
         else:
+            print("Using Linear")
             self.fc1 = nn.Linear(in_features, hidden_features)
             self.fc2 = nn.Linear(hidden_features, out_features)
             self.fc3 = nn.Linear(hidden_features, out_features)
@@ -306,22 +308,22 @@ class UKAN(nn.Module):
 
         self.block1 = nn.ModuleList([KANBlock(
             dim=embed_dims[1], 
-            drop=drop_rate, drop_path=dpr[0], norm_layer=norm_layer
+            drop=drop_rate, drop_path=dpr[0], norm_layer=norm_layer, no_kan=no_kan
             )])
 
         self.block2 = nn.ModuleList([KANBlock(
             dim=embed_dims[2],
-            drop=drop_rate, drop_path=dpr[1], norm_layer=norm_layer
+            drop=drop_rate, drop_path=dpr[1], norm_layer=norm_layer, no_kan=no_kan
             )])
 
         self.dblock1 = nn.ModuleList([KANBlock(
             dim=embed_dims[1], 
-            drop=drop_rate, drop_path=dpr[0], norm_layer=norm_layer
+            drop=drop_rate, drop_path=dpr[0], norm_layer=norm_layer, no_kan=no_kan
             )])
 
         self.dblock2 = nn.ModuleList([KANBlock(
             dim=embed_dims[0], 
-            drop=drop_rate, drop_path=dpr[1], norm_layer=norm_layer
+            drop=drop_rate, drop_path=dpr[1], norm_layer=norm_layer, no_kan=no_kan
             )])
 
         self.patch_embed3 = PatchEmbed(img_size=img_size // 4, patch_size=3, stride=2, in_chans=embed_dims[0], embed_dim=embed_dims[1])

@@ -7,7 +7,7 @@ try:
 except ImportError:
     pass
 
-__all__ = ['BCEDiceLoss', 'CrossEntropyLoss', 'LovaszHingeLoss']
+__all__ = ['BCEDiceLoss', 'CrossEntropyLoss', 'LovaszHingeLoss', 'FocalLoss']
 
 
 class BCEDiceLoss(nn.Module):
@@ -91,12 +91,81 @@ class CrossEntropyLoss(nn.Module):
     def __init__(self):
         super().__init__()
 
-    def forward(self, input, target):
+    def forward(self, input, target, **kwargs):
         # Cross-entropy loss for multiclass segmentation (using one-hot encoded target)
         target_idx = target.argmax(dim=1)  # Convert one-hot target to class indices
         ce_loss = F.cross_entropy(input, target_idx)  # input: (batch_size, num_classes, H, W), target: (batch_size, H, W)
 
         return ce_loss
+    
+    
+def substitute_values(x: torch.Tensor, values, unique=None):
+    """
+    Substitute values in a tensor with the given values
+    :param x: the tensor
+    :param unique: the unique values to substitute
+    :param values: the values to substitute with
+    :return: the tensor with the values substituted
+    """
+    if unique is None:
+        unique = x.unique()
+    lt = torch.full((unique.max() + 1,), -1, dtype=values.dtype, device=x.device)
+    lt[unique] = values
+    return lt[x]
+    
+    
+def get_weight_matrix_from_labels(labels, num_classes, ignore_index=-100):  
+    there_is_ignore = ignore_index in labels
+    if there_is_ignore:
+        weight_labels = labels.clone()
+        weight_labels += 1
+        weight_labels[weight_labels == ignore_index + 1] = 0
+        weight_num_classes = num_classes + 1
+    else:
+        weight_labels = labels
+        weight_num_classes = num_classes
+    weights = torch.ones(weight_num_classes, device=labels.device)
+    classes, counts = weight_labels.unique(return_counts=True)
+    classes = classes.long()
+    if there_is_ignore:
+        weights[classes] = 1 / torch.log(1.1 + counts / counts.sum())
+        weights[0] = 0
+        class_weights = weights[1:]
+    else:
+        weights[classes] = 1 / torch.log(1.1 + counts / counts.sum())
+        class_weights = weights
+    wtarget = substitute_values(
+        weight_labels,
+        weights,
+        unique=torch.arange(weight_num_classes, device=labels.device),
+    )
+    return wtarget, class_weights
+    
+    
+class FocalLoss(nn.Module):
+    def __init__(
+        self, gamma: float = 2.0, class_weighting=False, **kwargs
+    ):
+        super().__init__()
+        self.gamma = gamma
+        self.class_weighting = class_weighting
+
+    def __call__(self, x, target, weight_matrix=None, **kwargs):
+        if self.class_weighting:
+            num_classes = x.shape[1]
+            weight_matrix, _ = get_weight_matrix_from_labels(
+                target, num_classes
+            )
+        
+        ce_loss = F.cross_entropy(x, target, reduction="none")
+        pt = torch.exp(-ce_loss)
+        if weight_matrix is not None:
+            focal_loss = torch.pow((1 - pt), self.gamma) * weight_matrix * ce_loss
+        else:
+            focal_loss = torch.pow((1 - pt), self.gamma) * ce_loss
+
+        return torch.mean(focal_loss)
+    
         
 class LovaszHingeLoss(nn.Module):
     def __init__(self):

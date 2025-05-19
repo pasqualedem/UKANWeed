@@ -1,5 +1,6 @@
 #! /data/cxli/miniconda3/envs/th200/bin/python
 import argparse
+import json
 import os
 from glob import glob
 import random
@@ -26,12 +27,13 @@ import torch.nn.functional as F
 from torchmetrics.classification import F1Score
 from PIL import Image
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('--name', default=None, help='model name')
     parser.add_argument('--output_dir', default='outputs', help='ouput dir')
+    parser.add_argument('--device', default='cuda:0', type=str,
+                        help='device to use for training / testing')
             
     args = parser.parse_args()
 
@@ -62,9 +64,9 @@ def main():
 
     cudnn.benchmark = True
 
-    model = archs.__dict__[config['arch']](config['num_classes'], config['input_channels'], config['deep_supervision'], embed_dims=config['input_list'])
+    model = archs.__dict__[config['arch']](config['num_classes'], config['input_channels'], config['deep_supervision'], embed_dims=config['input_list'], no_kan=config['no_kan'])
 
-    #model = model.cuda()
+    device = torch.device(args.device)
     model = model.to(device)
 
     dataset_name = config['dataset']
@@ -79,10 +81,12 @@ def main():
     elif dataset_name == 'roweeder':
         mask_ext = '_GroundTruth_color.png'
 
+    test_data_dir = os.path.join(config['data_dir'], "test")
     # Data loading code
-    img_ids = sorted(glob(os.path.join(config['data_dir'], 'images', '*' + img_ext)))
+    img_ids = sorted(glob(os.path.join(test_data_dir, 'images', '*' + img_ext)))
     # img_ids.sort()
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
+    print("img_ids", len(img_ids))
 
     #_, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=config['dataseed'])
     val_img_ids = img_ids
@@ -110,16 +114,19 @@ def main():
         Resize(config['input_h'], config['input_w']),
         transforms.Normalize(),
     ])
+    
+    test_data_dir = os.path.join(config['data_dir'], "test")
+    print(f"test_data_dir: {test_data_dir}")
 
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join(config['data_dir'], 'images'),
-        mask_dir=os.path.join(config['data_dir'], 'masks'),
+        img_dir=os.path.join(test_data_dir, 'images'),
+        mask_dir=os.path.join(test_data_dir, 'masks'),
         img_ext=img_ext,
         mask_ext=mask_ext,
         num_classes=config['num_classes'],
         transform=val_transform)
-    print(len(val_dataset))
+    print(f"Data len", len(val_dataset))
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=config['batch_size'],
@@ -127,11 +134,7 @@ def main():
         shuffle=False,
         num_workers=config['num_workers'],
         drop_last=False)
-    '''
-    iou_avg_meter = AverageMeter()
-    dice_avg_meter = AverageMeter()
-    hd95_avg_meter = AverageMeter()
-    '''
+
     f1_micro_avg_meter = AverageMeter()
     f1 = F1Score(num_classes=config['num_classes'], task="multiclass" if config['num_classes'] > 1 else "binary", ignore_index=-100, average=None).to(device)
    # f1_perClass_avg_meter = AverageMeter()
@@ -145,21 +148,9 @@ def main():
             model = model.to(device)
             # compute output
             output = model(input)
-            '''
-            iou, dice, hd95_ = iou_score(output, target)
-            iou_avg_meter.update(iou, input.size(0))
-            dice_avg_meter.update(dice, input.size(0))
-            hd95_avg_meter.update(hd95_, input.size(0))
-            '''
-            f1_micro = f1_multiclass_micro(output, target)
-            f1_perClass = f1_multiclass_perClass(output, target,f1)
-            f1_micro_avg_meter.update(f1_micro, input.size(0))
-           # f1_perClass_avg_meter.update(f1_perClass, input.size(0))
-            '''
-            output = torch.sigmoid(output).cpu().numpy()
-            output[output>=0.5]=1
-            output[output<0.5]=0
-            '''
+
+            f1_multiclass_perClass(output, target,f1)
+            
             # Example: output shape (batch_size, num_classes, height, width)
             # Convert to class indices
             num_classes=output.shape[1]
@@ -190,14 +181,20 @@ def main():
           
     
     print(config['name'])
-    '''
-    print('IoU: %.4f' % iou_avg_meter.avg)
-    print('Dice: %.4f' % dice_avg_meter.avg)
-    print('HD95: %.4f' % hd95_avg_meter.avg)
-    '''
+
     print('F1 micro: %.4f' % f1_micro_avg_meter.avg)
     print(f"F1 per class: {f1.compute().tolist()}")
-    # print(print(f"F1 per class: {f1_perClass.detach().cpu().numpy()}"))
+    print(f"F1 Macro avg: {f1.compute().mean().item()}")
+    f1_per_class = f1.compute().tolist()
+    f1_macro = f1.compute().mean().item()
+    print(f"F1 per class: {f1_per_class}")
+    print(f"F1 macro: {f1_macro}")
+    
+    with open(os.path.join(args.output_dir, args.name, 'result.json'), 'w') as f:
+        json.dump({
+            'f1_per_class': f1_per_class,
+            'f1_macro': f1_macro,
+        }, f, indent=4)
 
 if __name__ == '__main__':
     main()

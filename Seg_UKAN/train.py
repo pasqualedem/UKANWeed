@@ -11,6 +11,7 @@ import torch
 import torch.backends.cudnn as cudnn
 import torch.nn as nn
 import torch.optim as optim
+from torchmetrics import F1Score
 import yaml
 
 from albumentations.augmentations import transforms
@@ -27,7 +28,7 @@ import archs
 import losses
 from dataset import Dataset
 
-from metrics import iou_score, indicators
+from metrics import f1_multiclass_perClass
 
 from utils import AverageMeter, str2bool
 
@@ -84,6 +85,8 @@ def parse_args():
                         help='loss: ' +
                         ' | '.join(LOSS_NAMES) +
                         ' (default: BCEDiceLoss)')
+    parser.add_argument('--loss_weights', default=False, action='store_true',
+                        help='apply loss weight')
     
     # dataset
     parser.add_argument('--dataset', default='busi', help='dataset name')      
@@ -156,15 +159,10 @@ def train(config, train_loader, model, criterion, optimizer):
             for output in outputs:
                 loss += criterion(output, target)
             loss /= len(outputs)
-
-           # iou, dice, _ = iou_score(outputs[-1], target)
-           # iou_, dice_, hd_, hd95_, recall_, specificity_, precision_ = indicators(outputs[-1], target)
             
         else:
             output = model(input)
             loss = criterion(output, target)
-           # iou, dice, _ = iou_score(output, target)
-           # iou_, dice_, hd_, hd95_, recall_, specificity_, precision_ = indicators(output, target)
 
         # compute gradient and do optimizing step
         optimizer.zero_grad()
@@ -172,19 +170,6 @@ def train(config, train_loader, model, criterion, optimizer):
         optimizer.step()
 
         avg_meters['loss'].update(loss.item(), input.size(0))
-       # avg_meters['iou'].update(iou, input.size(0))
-        '''
-        postfix = OrderedDict([
-            ('loss', avg_meters['loss'].avg),
-            ('iou', avg_meters['iou'].avg),
-        ])
-        pbar.set_postfix(postfix)
-        pbar.update(1)
-    pbar.close()
-    
-    return OrderedDict([('loss', avg_meters['loss'].avg),
-                        ('iou', avg_meters['iou'].avg)])
-    '''
         postfix = OrderedDict([
             ('loss', avg_meters['loss'].avg),
         ])
@@ -194,18 +179,15 @@ def train(config, train_loader, model, criterion, optimizer):
     return OrderedDict([('loss', avg_meters['loss'].avg)])
 
 def validate(config, val_loader, model, criterion):
-    avg_meters = {'loss': AverageMeter(),
-                  'iou': AverageMeter(),
-                   'dice': AverageMeter()}
+    avg_meters = {'loss': AverageMeter()}
 
     # switch to evaluate mode
     model.eval()
 
     with torch.no_grad():
         pbar = tqdm(total=len(val_loader))
+        f1 = F1Score(num_classes=config['num_classes'], task="multiclass" if config['num_classes'] > 1 else "binary", ignore_index=-100, average=None).to(device)
         for input, target, _ in val_loader:
-            #input = input.cuda()
-            #target = target.cuda()
             input = input.to(device)
             target = target.to(device)
 
@@ -216,20 +198,17 @@ def validate(config, val_loader, model, criterion):
                 for output in outputs:
                     loss += criterion(output, target)
                 loss /= len(outputs)
-                iou, dice, _ = iou_score(outputs[-1], target)
             else:
                 output = model(input)
                 loss = criterion(output, target)
-                iou, dice, _ = iou_score(output, target)
+                f1_multiclass_perClass(output, target, f1)
 
             avg_meters['loss'].update(loss.item(), input.size(0))
-            avg_meters['iou'].update(iou, input.size(0))
-            avg_meters['dice'].update(dice, input.size(0))
+            f1_value = f1.compute().mean().item()
 
             postfix = OrderedDict([
                 ('loss', avg_meters['loss'].avg),
-                ('iou', avg_meters['iou'].avg),
-                ('dice', avg_meters['dice'].avg)
+                ('f1', f1_value),
             ])
             pbar.set_postfix(postfix)
             pbar.update(1)
@@ -237,8 +216,8 @@ def validate(config, val_loader, model, criterion):
 
 
     return OrderedDict([('loss', avg_meters['loss'].avg),
-                        ('iou', avg_meters['iou'].avg),
-                        ('dice', avg_meters['dice'].avg)])
+                        ('f1', f1_value),
+                        ])
 
 def seed_torch(seed=1029):
     random.seed(seed)
@@ -277,15 +256,7 @@ def main():
     with open(f'{output_dir}/{exp_name}/config.yml', 'w') as f:
         yaml.dump(config, f)
 
-    # define loss function (criterion)
-    if config['loss'] == 'BCEWithLogitsLoss':
-        #criterion = nn.BCEWithLogitsLoss().cuda()
-        # criterion = nn.BCEWithLogitsLoss().to(device)
-        criterion = losses.__dict__['CrossEntropyLoss']().to(device)
-    else:
-        #criterion = losses.__dict__[config['CrossEntropyLoss']]().cuda()
-        #criterion = losses.__dict__[config['loss']]().to(device)
-        criterion = losses.__dict__['CrossEntropyLoss']().to(device)
+    criterion = losses.__dict__[config["loss"]]().to(device)
 
     cudnn.benchmark = True
 
@@ -310,13 +281,9 @@ def main():
             # other_params.append(name)
             param_groups.append({'params': param, 'lr': config['lr'], 'weight_decay': config['weight_decay']})  
     
-
-    
     # st()
     if config['optimizer'] == 'Adam':
         optimizer = optim.Adam(param_groups)
-
-
     elif config['optimizer'] == 'SGD':
         optimizer = optim.SGD(params, lr=config['lr'], momentum=config['momentum'], nesterov=config['nesterov'], weight_decay=config['weight_decay'])
     else:
@@ -349,77 +316,79 @@ def main():
     elif dataset_name == 'roweeder':
         mask_ext = '_GroundTruth_color.png'
 
+    data_dir = os.path.join(config['data_dir'], "train")
+    val_data_dir = data_dir
+
     # Data loading code
-    img_ids = sorted(glob(os.path.join(config['data_dir'], 'images', '*' + img_ext)))
+    img_ids = sorted(glob(os.path.join(data_dir, 'images', '*' + img_ext)))
     img_ids = [os.path.splitext(os.path.basename(p))[0] for p in img_ids]
 
-    #train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=config['dataseed'])
-    train_img_ids = img_ids
+    val_img_ids = sorted(glob(os.path.join(val_data_dir, 'images', '*' + img_ext)))
+    val_img_ids = [os.path.splitext(os.path.basename(p))[0] for p in val_img_ids]
+    
+    train_img_ids, val_img_ids = train_test_split(img_ids, test_size=0.2, random_state=config['dataseed'])
+
     train_transform = Compose([
         RandomRotate90(),
         # geometric.transforms.Flip(),
         Resize(config['input_h'], config['input_w']),
         transforms.Normalize(),
     ])
-    '''
+
     val_transform = Compose([
         Resize(config['input_h'], config['input_w']),
         transforms.Normalize(),
     ])
-    '''
+
     train_dataset = Dataset(
         img_ids=train_img_ids,
-        img_dir=os.path.join(config['data_dir'],  'images'),
-        mask_dir=os.path.join(config['data_dir'], 'masks'),
+        img_dir=os.path.join(data_dir,  'images'),
+        mask_dir=os.path.join(data_dir, 'masks'),
         img_ext=img_ext,
         mask_ext=mask_ext,
         num_classes=config['num_classes'],
         transform=train_transform)
-    '''
+
     val_dataset = Dataset(
         img_ids=val_img_ids,
-        img_dir=os.path.join(config['data_dir'] ,'images'),
-        mask_dir=os.path.join(config['data_dir'],  'masks'),
+        img_dir=os.path.join(val_data_dir ,'images'),
+        mask_dir=os.path.join(val_data_dir,  'masks'),
         img_ext=img_ext,
         mask_ext=mask_ext,
         num_classes=config['num_classes'],
         transform=val_transform)
-    '''
+
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=config['batch_size'],
         shuffle=True,
         num_workers=config['num_workers'],
         drop_last=True)
-    '''
+
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=config['batch_size'],
         shuffle=False,
         num_workers=config['num_workers'],
         drop_last=False)
-    '''
+
     log = OrderedDict([
         ('epoch', []),
         ('lr', []),
         ('loss', []),
-        #('iou', []),
-        #('val_loss', []),
-        #('val_iou', []),
-        #('val_dice', []),
+        ('val_loss', []),
+        ('val_f1', []),
     ])
 
-
-    best_iou = 0
-    best_dice= 0
     trigger = 0
+    best_f1 = 0
     for epoch in range(config['epochs']):
         print('Epoch [%d/%d]' % (epoch, config['epochs']))
 
         # train for one epoch
         train_log = train(config, train_loader, model, criterion, optimizer)
         # evaluate on validation set
-       # val_log = validate(config, val_loader, model, criterion)
+        val_log = validate(config, val_loader, model, criterion)
 
         if config['scheduler'] == 'CosineAnnealingLR':
             scheduler.step()
@@ -431,38 +400,31 @@ def main():
         log['epoch'].append(epoch)
         log['lr'].append(config['lr'])
         log['loss'].append(train_log['loss'])
-       # log['iou'].append(train_log['iou'])
-       # log['val_loss'].append(val_log['loss'])
-       # log['val_iou'].append(val_log['iou'])
-       # log['val_dice'].append(val_log['dice'])
+        log['val_loss'].append(val_log['loss'])
+        log['val_f1'].append(val_log['f1'])
 
-       # pd.DataFrame(log).to_csv(f'{output_dir}/{exp_name}/log.csv', index=False)
+        pd.DataFrame(log).to_csv(f'{output_dir}/{exp_name}/log.csv', index=False)
 
         my_writer.add_scalar('train/loss', train_log['loss'], global_step=epoch)
-       # my_writer.add_scalar('train/iou', train_log['iou'], global_step=epoch)
-       # my_writer.add_scalar('val/loss', val_log['loss'], global_step=epoch)
-       # my_writer.add_scalar('val/iou', val_log['iou'], global_step=epoch)
-       # my_writer.add_scalar('val/dice', val_log['dice'], global_step=epoch)
+        my_writer.add_scalar('val/loss', val_log['loss'], global_step=epoch)
+        my_writer.add_scalar('val/f1', val_log['f1'], global_step=epoch)
 
-       # my_writer.add_scalar('val/best_iou_value', best_iou, global_step=epoch)
-       # my_writer.add_scalar('val/best_dice_value', best_dice, global_step=epoch)
-        '''
+        my_writer.add_scalar('val/best_f1_value', best_f1, global_step=epoch)
+
         trigger += 1
 
-        if val_log['iou'] > best_iou:
+        if val_log['f1'] > best_f1:
             torch.save(model.state_dict(), f'{output_dir}/{exp_name}/model.pth')
-            best_iou = val_log['iou']
-            best_dice = val_log['dice']
+            best_f1 = val_log['f1']
             print("=> saved best model")
-            print('IoU: %.4f' % best_iou)
-            print('Dice: %.4f' % best_dice)
+            print('F1: %.4f' % best_f1)
             trigger = 0
       
         # early stopping
         if config['early_stopping'] >= 0 and trigger >= config['early_stopping']:
             print("=> early stopping")
             break
-        '''
+
         if torch.cuda.is_available():
           torch.cuda.empty_cache()
     

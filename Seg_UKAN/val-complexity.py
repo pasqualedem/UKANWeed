@@ -115,8 +115,8 @@ def main():
           (3, 512, 512),
           as_strings=True,
           backend="pytorch",
-          print_per_layer_stat=True,
-          verbose=True,
+          print_per_layer_stat=False,
+          verbose=False,
     )
     print(f"MACs: {macs}")
     print(f"Params: {params}")
