@@ -29,6 +29,7 @@ from tensorboardX import SummaryWriter
 from Seg_UKAN.dataset import Dataset
 from Seg_UKAN.metrics import f1_multiclass_perClass
 from Seg_UKAN.utils import AverageMeter, str2bool
+from Seg_UKAN.test import test
 import Seg_UKAN.losses
 
 import shutil

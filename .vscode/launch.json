@@ -1,0 +1,66 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+    
+        {
+            "name": "Inference",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Seg_UKAN/inference.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--name",
+                "UKAN_32"
+            ]
+        },
+        {
+            "name": "Validate",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Seg_UKAN/test.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--name",
+                "UKAN_128_nw",
+                "--output_dir",
+                "outputs"
+            ]
+        },
+        {
+            "name": "Train",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Seg_UKAN/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--name=testino",
+                "--output_dir=testino",
+                "--arch=UKAN",
+                "--dataset=roweeder",
+                "--num_classes=3", 
+                "--input_w=512",
+                "--input_h=512",
+                "--input_list=128,160,256",
+                "--epochs=1",
+                "--data_dir=data/weedmap/UKAN",
+                "--loss=FocalLoss",
+                "-b=2",
+                "--early_stopping=20",
+                "--kan_lr=0.001",
+            ]
+        },
+        {
+            "name": "Train Confg",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "Seg_UKAN/train.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg=parameters/UKAN.yaml"
+            ]
+        },
+    ]
+}

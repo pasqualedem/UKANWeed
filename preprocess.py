@@ -27,7 +27,10 @@ def resize_image(file_path, output_dir, size):
     if filename.lower().endswith((".png", ".jpg", ".jpeg")):
         try:
             with Image.open(file_path) as img:
-                resized_img = img.resize(size, Image.LANCZOS)
+                if "GroundTruth" in filename:
+                    resized_img = img.resize(size, Image.NEAREST)
+                else:
+                    resized_img = img.resize(size, Image.BILINEAR)
                 resized_img.save(os.path.join(output_dir, filename))
         except Exception as e:
             print(f"Error processing {filename}: {e}")
