@@ -16,7 +16,7 @@ import yaml
 from utils import load_yaml
 import archs
 
-from transformers import SegformerImageProcessor, SegformerForSemanticSegmentation
+from transformers import ResNetForImageClassification, AutoImageProcessor
 
 WARM_UP = 10
 ITERATIONS = 100
@@ -45,33 +45,26 @@ def seed_torch(seed=1029):
     torch.backends.cudnn.deterministic = True
 
 
-class EmbeddedSegformer(torch.nn.Module):
-    def __init__(self, model: SegformerForSemanticSegmentation, processor: SegformerImageProcessor, input_size):
-        super(EmbeddedSegformer, self).__init__()
+class EmbeddedResNet(torch.nn.Module):
+    def __init__(self, model: ResNetForImageClassification, processor: AutoImageProcessor, input_size):
+        super(EmbeddedResNet, self).__init__()
         self.model = model
         self.processor = processor
         self.input_size = input_size
         
     def forward(self, x):
-        # Forward pass through the model
-        outputs = self.model(x)
-        dimension_list = [self.input_size for _ in range(outputs.logits.shape[0])]
-        outputs = self.processor.post_process_semantic_segmentation(outputs, target_sizes=dimension_list)
-        outputs = torch.stack(outputs, dim=0)
-        return outputs
+        return self.model(x)
 
 
-def get_segformer(input_size):
-    label2id = {'background':0, 'crop':1, 'weed':2}
-    id2label = {0:'background', 1:'crop', 2:'weed'}
-    # define model
-    model = SegformerForSemanticSegmentation.from_pretrained("nvidia/mit-b0",
-                                                            num_labels=3,
-                                                            id2label=id2label,
-                                                            label2id=label2id,
-    )
-    image_processor = SegformerImageProcessor(reduce_labels=False)  
-    return EmbeddedSegformer(model, image_processor, input_size)  
+def get_resnet(size):
+    """
+    Returns a ResNet model with the specified input size.
+    """
+    # Load the pre-trained ResNet model
+    model = ResNetForImageClassification.from_pretrained("microsoft/resnet-50")
+    processor = AutoImageProcessor.from_pretrained("microsoft/resnet-50")
+
+    return EmbeddedResNet(model, processor, size)
     
 
 def main():
@@ -87,9 +80,9 @@ def main():
     for key in config.keys():
         print(f'{key}: {str(config[key])}')
 
-    if "segformer" in args.name:
+    if "resnet" in args.name:
         size = (512, 512)
-        model = get_segformer(size)
+        model = get_resnet(size)
     else:
         print('-'*20)
         model = archs.__dict__[config['arch']](config['num_classes'], config['input_channels'], config['deep_supervision'], embed_dims=config['input_list'], no_kan=config['no_kan'])
@@ -103,7 +96,7 @@ def main():
     dummy_input = torch.randn(batch_size, 3, config['input_h'], config['input_h']).to(device)
     with FlopTensorDispatchMode(model) as ftdm:
         # count forward flops
-        res = model(dummy_input).mean()
+        res = model(dummy_input)
         flops_forward = copy.deepcopy(ftdm.flop_counts)
     gflops_forward = sum(flops_forward[""].values()) / 1e9
     print("GFLOPs: ", gflops_forward)
