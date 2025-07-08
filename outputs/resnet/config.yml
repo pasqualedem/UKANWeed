@@ -1,0 +1,11 @@
+arch: resnet
+input_channels: 3
+input_h: 224
+input_w: 224
+
+name: resnet
+num_classes: 3
+num_workers: 4
+output_dir: outputs
+input_list: null
+batch_size: 8
